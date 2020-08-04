@@ -7,7 +7,6 @@ using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Security;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Customers;
 
 namespace Nop.Services.Security
@@ -62,7 +61,7 @@ namespace Nop.Services.Security
         /// <returns>ACL record</returns>
         public virtual AclRecord GetAclRecordById(int aclRecordId)
         {
-            return _aclRecordRepository.GetById(aclRecordId);
+            return _aclRecordRepository.GetById(aclRecordId, cache => default);
         }
 
         /// <summary>
@@ -146,14 +145,14 @@ namespace Nop.Services.Security
             var entityId = entity.Id;
             var entityName = entity.GetType().Name;
 
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.AclRecordByEntityIdNameCacheKey, entityId, entityName);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.AclRecordCacheKey, entityId, entityName);
 
             var query = from ur in _aclRecordRepository.Table
                 where ur.EntityId == entityId &&
                       ur.EntityName == entityName
                 select ur.CustomerRoleId;
 
-            return query.ToCachedArray(key);
+            return _staticCacheManager.Get(key, query.ToArray);
         }
 
         /// <summary>

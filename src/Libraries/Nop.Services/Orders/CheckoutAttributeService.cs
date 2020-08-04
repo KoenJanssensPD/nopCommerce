@@ -4,7 +4,6 @@ using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Orders;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Stores;
 
 namespace Nop.Services.Orders
@@ -108,7 +107,7 @@ namespace Nop.Services.Orders
         /// <returns>Checkout attribute</returns>
         public virtual CheckoutAttribute GetCheckoutAttributeById(int checkoutAttributeId)
         {
-            return _checkoutAttributeRepository.GetById(checkoutAttributeId);
+            return _checkoutAttributeRepository.GetById(checkoutAttributeId, cache => default);
         }
 
         /// <summary>
@@ -165,7 +164,7 @@ namespace Nop.Services.Orders
                 orderby cav.DisplayOrder, cav.Id
                 where cav.CheckoutAttributeId == checkoutAttributeId
                 select cav;
-            var checkoutAttributeValues = query.ToCachedList(key);
+            var checkoutAttributeValues = _staticCacheManager.Get(key, query.ToList);
 
             return checkoutAttributeValues;
         }
@@ -177,7 +176,7 @@ namespace Nop.Services.Orders
         /// <returns>Checkout attribute value</returns>
         public virtual CheckoutAttributeValue GetCheckoutAttributeValueById(int checkoutAttributeValueId)
         {
-            return _checkoutAttributeValueRepository.GetById(checkoutAttributeValueId);
+            return _checkoutAttributeValueRepository.GetById(checkoutAttributeValueId, cache => default);
         }
 
         /// <summary>

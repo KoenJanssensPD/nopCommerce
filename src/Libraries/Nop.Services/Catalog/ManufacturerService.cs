@@ -9,7 +9,6 @@ using Nop.Core.Domain.Discounts;
 using Nop.Core.Domain.Security;
 using Nop.Core.Domain.Stores;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Customers;
 using Nop.Services.Discounts;
 
@@ -181,13 +180,15 @@ namespace Nop.Services.Catalog
             if (discount == null)
                 throw new ArgumentNullException(nameof(discount));
 
-            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopDiscountDefaults.DiscountManufacturerIdsModelCacheKey, 
+            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopDiscountDefaults.ManufacturerIdsByDiscountCacheKey, 
                 discount,
                 _customerService.GetCustomerRoleIds(customer),
                 _storeContext.CurrentStore);
 
-            var result = _discountManufacturerMappingRepository.Table.Where(dmm => dmm.DiscountId == discount.Id)
-                .Select(dmm => dmm.EntityId).ToCachedList(cacheKey);
+            var query = _discountManufacturerMappingRepository.Table.Where(dmm => dmm.DiscountId == discount.Id)
+                .Select(dmm => dmm.EntityId);
+
+            var result = _staticCacheManager.Get(cacheKey, query.ToList);
 
             return result;
         }
@@ -199,7 +200,7 @@ namespace Nop.Services.Catalog
         /// <returns>Manufacturer</returns>
         public virtual Manufacturer GetManufacturerById(int manufacturerId)
         {
-            return _manufacturerRepository.GetById(manufacturerId);
+            return _manufacturerRepository.GetById(manufacturerId, cache => default);
         }
 
         /// <summary>
@@ -356,7 +357,7 @@ namespace Nop.Services.Catalog
             if (productId == 0)
                 return new List<ProductManufacturer>();
 
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductManufacturersAllByProductIdCacheKey, productId,
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductManufacturersByProductCacheKey, productId,
                 showHidden, _workContext.CurrentCustomer, _storeContext.CurrentStore);
 
             var query = from pm in _productManufacturerRepository.Table
@@ -418,7 +419,7 @@ namespace Nop.Services.Catalog
                 query = query.Distinct().OrderBy(pm => pm.DisplayOrder).ThenBy(pm => pm.Id);
             }
 
-            var productManufacturers = query.ToCachedList(key);
+            var productManufacturers = _staticCacheManager.Get(key, query.ToList);
 
             return productManufacturers;
         }
@@ -430,7 +431,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product manufacturer mapping</returns>
         public virtual ProductManufacturer GetProductManufacturerById(int productManufacturerId)
         {
-            return _productManufacturerRepository.GetById(productManufacturerId);
+            return _productManufacturerRepository.GetById(productManufacturerId, cache => default);
         }
 
         /// <summary>

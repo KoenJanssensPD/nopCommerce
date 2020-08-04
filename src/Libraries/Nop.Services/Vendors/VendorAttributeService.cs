@@ -3,7 +3,6 @@ using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Vendors;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.Vendors
 {
@@ -44,9 +43,8 @@ namespace Nop.Services.Vendors
         public virtual IList<VendorAttribute> GetAllVendorAttributes()
         {
             return _vendorAttributeRepository.GetAll(
-                query => query.OrderBy(vendorAttribute => vendorAttribute.DisplayOrder)
-                    .ThenBy(vendorAttribute => vendorAttribute.Id)
-                , _staticCacheManager.PrepareKeyForDefaultCache(NopVendorDefaults.VendorAttributesAllCacheKey));
+                query => query.OrderBy(vendorAttribute => vendorAttribute.DisplayOrder).ThenBy(vendorAttribute => vendorAttribute.Id),
+                cache => default);
         }
 
         /// <summary>
@@ -56,7 +54,7 @@ namespace Nop.Services.Vendors
         /// <returns>Vendor attribute</returns>
         public virtual VendorAttribute GetVendorAttributeById(int vendorAttributeId)
         {
-            return _vendorAttributeRepository.GetById(vendorAttributeId);
+            return _vendorAttributeRepository.GetById(vendorAttributeId, cache => default);
         }
 
         /// <summary>
@@ -97,13 +95,14 @@ namespace Nop.Services.Vendors
         /// <returns>Vendor attribute values</returns>
         public virtual IList<VendorAttributeValue> GetVendorAttributeValues(int vendorAttributeId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopVendorDefaults.VendorAttributeValuesAllCacheKey, vendorAttributeId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopVendorDefaults.VendorAttributeValuesByAttributeCacheKey, vendorAttributeId);
 
-            return _vendorAttributeValueRepository.Table
+            var query = _vendorAttributeValueRepository.Table
                 .Where(vendorAttributeValue => vendorAttributeValue.VendorAttributeId == vendorAttributeId)
                 .OrderBy(vendorAttributeValue => vendorAttributeValue.DisplayOrder)
-                .ThenBy(vendorAttributeValue => vendorAttributeValue.Id)
-                .ToCachedList(key);
+                .ThenBy(vendorAttributeValue => vendorAttributeValue.Id);
+
+            return _staticCacheManager.Get(key, query.ToList);
         }
 
         /// <summary>
@@ -113,7 +112,7 @@ namespace Nop.Services.Vendors
         /// <returns>Vendor attribute value</returns>
         public virtual VendorAttributeValue GetVendorAttributeValueById(int vendorAttributeValueId)
         {
-            return _vendorAttributeValueRepository.GetById(vendorAttributeValueId);
+            return _vendorAttributeValueRepository.GetById(vendorAttributeValueId, cache => default);
         }
 
         /// <summary>

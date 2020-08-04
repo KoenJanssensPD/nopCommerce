@@ -6,7 +6,6 @@ using Nop.Core.Caching;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Security;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
 
@@ -56,7 +55,7 @@ namespace Nop.Services.Security
         /// <returns>Permissions</returns>
         protected virtual IList<PermissionRecord> GetPermissionRecordsByCustomerRoleId(int customerRoleId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.PermissionsAllByCustomerRoleIdCacheKey, customerRoleId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.PermissionRecordsAllCacheKey, customerRoleId);
 
             var query = from pr in _permissionRecordRepository.Table
                 join prcrm in _permissionRecordCustomerRoleMappingRepository.Table on pr.Id equals prcrm
@@ -65,7 +64,7 @@ namespace Nop.Services.Security
                 orderby pr.Id
                 select pr;
 
-            return query.ToCachedList(key);
+            return _staticCacheManager.Get(key, query.ToList);
         }
 
         #endregion
@@ -88,7 +87,7 @@ namespace Nop.Services.Security
         /// <returns>Permission</returns>
         public virtual PermissionRecord GetPermissionRecordById(int permissionId)
         {
-            return _permissionRecordRepository.GetById(permissionId);
+            return _permissionRecordRepository.GetById(permissionId, cache => default);
         }
 
         /// <summary>
@@ -297,7 +296,7 @@ namespace Nop.Services.Security
             if (string.IsNullOrEmpty(permissionRecordSystemName))
                 return false;
 
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.PermissionsAllowedCacheKey, permissionRecordSystemName, customerRoleId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopSecurityDefaults.PermissionAllowedCacheKey, permissionRecordSystemName, customerRoleId);
 
             return _staticCacheManager.Get(key, () =>
             {

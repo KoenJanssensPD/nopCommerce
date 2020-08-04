@@ -3,7 +3,6 @@ using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Common;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.Common
 {
@@ -55,7 +54,7 @@ namespace Nop.Services.Common
                 return from aa in query
                     orderby aa.DisplayOrder, aa.Id
                     select aa;
-            }, _staticCacheManager.PrepareKeyForDefaultCache(NopCommonDefaults.AddressAttributesAllCacheKey));
+            }, cache => default);
         }
 
         /// <summary>
@@ -65,7 +64,7 @@ namespace Nop.Services.Common
         /// <returns>Address attribute</returns>
         public virtual AddressAttribute GetAddressAttributeById(int addressAttributeId)
         {
-            return _addressAttributeRepository.GetById(addressAttributeId);
+            return _addressAttributeRepository.GetById(addressAttributeId, cache => default);
         }
 
         /// <summary>
@@ -102,13 +101,13 @@ namespace Nop.Services.Common
         /// <returns>Address attribute values</returns>
         public virtual IList<AddressAttributeValue> GetAddressAttributeValues(int addressAttributeId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCommonDefaults.AddressAttributeValuesAllCacheKey, addressAttributeId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCommonDefaults.AddressAttributeValuesByAttributeCacheKey, addressAttributeId);
 
             var query = from aav in _addressAttributeValueRepository.Table
                 orderby aav.DisplayOrder, aav.Id
                 where aav.AddressAttributeId == addressAttributeId
                 select aav;
-            var addressAttributeValues = query.ToCachedList(key);
+            var addressAttributeValues = _staticCacheManager.Get(key, query.ToList);
 
             return addressAttributeValues;
         }
@@ -120,7 +119,7 @@ namespace Nop.Services.Common
         /// <returns>Address attribute value</returns>
         public virtual AddressAttributeValue GetAddressAttributeValueById(int addressAttributeValueId)
         {
-            return _addressAttributeValueRepository.GetById(addressAttributeValueId);
+            return _addressAttributeValueRepository.GetById(addressAttributeValueId, cache => default);
         }
 
         /// <summary>

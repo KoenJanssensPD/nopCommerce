@@ -14,14 +14,10 @@ namespace Nop.Services.Localization.Caching
         /// <param name="entity">Entity</param>
         protected override void ClearCache(Language entity)
         {
-            Remove(_staticCacheManager.PrepareKey(NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey, entity));
-            Remove(_staticCacheManager.PrepareKey(NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey, entity));
-            Remove(_staticCacheManager.PrepareKey(NopLocalizationDefaults.LocaleStringResourcesAllCacheKey, entity));
-
-            var prefix = _staticCacheManager.PrepareKeyPrefix(NopLocalizationDefaults.LocaleStringResourcesByResourceNamePrefixCacheKey, entity);
-            RemoveByPrefix(prefix);
-
-            RemoveByPrefix(NopLocalizationDefaults.LanguagesAllPrefixCacheKey);
+            Remove(NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey, entity);
+            Remove(NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey, entity);
+            Remove(NopLocalizationDefaults.LocaleStringResourcesAllCacheKey, entity);
+            RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesByNamePrefix, entity);
         }
     }
 }

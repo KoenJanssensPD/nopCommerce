@@ -9,7 +9,6 @@ using Nop.Core.Domain.Discounts;
 using Nop.Core.Domain.Security;
 using Nop.Core.Domain.Stores;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Customers;
 using Nop.Services.Discounts;
 using Nop.Services.Localization;
@@ -226,9 +225,6 @@ namespace Nop.Services.Catalog
         public virtual IList<Category> GetAllCategoriesByParentCategoryId(int parentCategoryId,
             bool showHidden = false)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesByParentCategoryIdCacheKey,
-                parentCategoryId, showHidden, _workContext.CurrentCustomer, _storeContext.CurrentStore);
-
             var categories = _categoryRepository.GetAll(query =>
             {
                 if (!showHidden)
@@ -272,7 +268,8 @@ namespace Nop.Services.Catalog
                 }
 
                 return query;
-            }, key);
+            }, cache => cache.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesByParentCategoryCacheKey,
+                parentCategoryId, showHidden, _workContext.CurrentCustomer, _storeContext.CurrentStore));
 
             return categories;
         }
@@ -292,12 +289,12 @@ namespace Nop.Services.Catalog
                           !c.Deleted &&
                           c.ShowOnHomepage
                     select c;
-            }, _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesAllDisplayedOnHomepageCacheKey));
+            }, cache => cache.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesHomepageCacheKey));
 
             if (showHidden)
                 return categories;
 
-            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesDisplayedOnHomepageWithoutHiddenCacheKey,
+            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesHomepageWithoutHiddenCacheKey,
                 _storeContext.CurrentStore, _customerService.GetCustomerRoleIds(_workContext.CurrentCustomer));
 
             var result = _staticCacheManager.Get(cacheKey, () =>
@@ -321,7 +318,7 @@ namespace Nop.Services.Catalog
             if (discount == null)
                 throw new ArgumentNullException(nameof(discount));
 
-            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopDiscountDefaults.DiscountCategoryIdsModelCacheKey,
+            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopDiscountDefaults.CategoryIdsByDiscountCacheKey,
                 discount,
                 _customerService.GetCustomerRoleIds(customer),
                 _storeContext.CurrentStore);
@@ -350,7 +347,7 @@ namespace Nop.Services.Catalog
         /// <returns>Category identifiers</returns>
         public virtual IList<int> GetChildCategoryIds(int parentCategoryId, int storeId = 0, bool showHidden = false)
         {
-            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesChildIdentifiersCacheKey,
+            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.CategoriesChildIdsCacheKey,
                 parentCategoryId,
                 _customerService.GetCustomerRoleIds(_workContext.CurrentCustomer),
                 _storeContext.CurrentStore,
@@ -380,7 +377,7 @@ namespace Nop.Services.Catalog
         /// <returns>Category</returns>
         public virtual Category GetCategoryById(int categoryId)
         {
-            return _categoryRepository.GetById(categoryId);
+            return _categoryRepository.GetById(categoryId, cache => default);
         }
 
         /// <summary>
@@ -584,7 +581,7 @@ namespace Nop.Services.Catalog
             if (productId == 0)
                 return new List<ProductCategory>();
 
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductCategoriesAllByProductIdCacheKey,
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductCategoriesByProductCacheKey,
                 productId, showHidden, _workContext.CurrentCustomer, storeId);
 
             var query = from pc in _productCategoryRepository.Table
@@ -596,7 +593,7 @@ namespace Nop.Services.Catalog
                         select pc;
 
             if (showHidden)
-                return query.ToCachedList(key);
+                return _staticCacheManager.Get(key, query.ToList);
 
             var categoryIds = GetCategoriesByIds(query.Select(pc => pc.CategoryId).ToArray())
                 .Where(category => _aclService.Authorize(category) && _storeMappingService.Authorize(category, storeId))
@@ -606,7 +603,7 @@ namespace Nop.Services.Catalog
                     where categoryIds.Contains(pc.CategoryId)
                     select pc;
 
-            return query.ToCachedList(key);
+            return _staticCacheManager.Get(key, query.ToList);
         }
 
         /// <summary>
@@ -616,7 +613,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product category mapping</returns>
         public virtual ProductCategory GetProductCategoryById(int productCategoryId)
         {
-            return _productCategoryRepository.GetById(productCategoryId);
+            return _productCategoryRepository.GetById(productCategoryId, cache => default);
         }
 
         /// <summary>

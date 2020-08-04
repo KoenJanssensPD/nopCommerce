@@ -5,7 +5,6 @@ using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.Catalog
 {
@@ -98,7 +97,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute </returns>
         public virtual ProductAttribute GetProductAttributeById(int productAttributeId)
         {
-            return _productAttributeRepository.GetById(productAttributeId);
+            return _productAttributeRepository.GetById(productAttributeId, cache => default);
         }
 
         /// <summary>
@@ -165,14 +164,14 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute mapping collection</returns>
         public virtual IList<ProductAttributeMapping> GetProductAttributeMappingsByProductId(int productId)
         {
-            var allCacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeMappingsAllCacheKey, productId);
+            var allCacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeMappingsByProductCacheKey, productId);
 
             var query = from pam in _productAttributeMappingRepository.Table
                 orderby pam.DisplayOrder, pam.Id
                 where pam.ProductId == productId
                 select pam;
 
-            var attributes = query.ToCachedList(allCacheKey) ?? new List<ProductAttributeMapping>();
+            var attributes = _staticCacheManager.Get(allCacheKey, query.ToList) ?? new List<ProductAttributeMapping>();
 
             return attributes;
         }
@@ -184,7 +183,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute mapping</returns>
         public virtual ProductAttributeMapping GetProductAttributeMappingById(int productAttributeMappingId)
         {
-            return _productAttributeMappingRepository.GetById(productAttributeMappingId);
+            return _productAttributeMappingRepository.GetById(productAttributeMappingId, cache => default);
         }
 
         /// <summary>
@@ -225,13 +224,13 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute mapping collection</returns>
         public virtual IList<ProductAttributeValue> GetProductAttributeValues(int productAttributeMappingId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeValuesAllCacheKey, productAttributeMappingId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeValuesByAttributeCacheKey, productAttributeMappingId);
 
             var query = from pav in _productAttributeValueRepository.Table
                 orderby pav.DisplayOrder, pav.Id
                 where pav.ProductAttributeMappingId == productAttributeMappingId
                 select pav;
-            var productAttributeValues = query.ToCachedList(key);
+            var productAttributeValues = _staticCacheManager.Get(key, query.ToList);
 
             return productAttributeValues;
         }
@@ -243,7 +242,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute value</returns>
         public virtual ProductAttributeValue GetProductAttributeValueById(int productAttributeValueId)
         {
-            return _productAttributeValueRepository.GetById(productAttributeValueId);
+            return _productAttributeValueRepository.GetById(productAttributeValueId, cache => default);
         }
 
         /// <summary>
@@ -284,14 +283,14 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute mapping collection</returns>
         public virtual IList<PredefinedProductAttributeValue> GetPredefinedProductAttributeValues(int productAttributeId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.PredefinedProductAttributeValuesAllCacheKey, productAttributeId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.PredefinedProductAttributeValuesByAttributeCacheKey, productAttributeId);
 
             var query = from ppav in _predefinedProductAttributeValueRepository.Table
                         orderby ppav.DisplayOrder, ppav.Id
                         where ppav.ProductAttributeId == productAttributeId
                         select ppav;
 
-            var values = query.ToCachedList(key);
+            var values = _staticCacheManager.Get(key, query.ToList);
 
             return values;
         }
@@ -303,7 +302,7 @@ namespace Nop.Services.Catalog
         /// <returns>Predefined product attribute value</returns>
         public virtual PredefinedProductAttributeValue GetPredefinedProductAttributeValueById(int id)
         {
-            return _predefinedProductAttributeValueRepository.GetById(id);
+            return _predefinedProductAttributeValueRepository.GetById(id, cache => default);
         }
 
         /// <summary>
@@ -347,15 +346,13 @@ namespace Nop.Services.Catalog
             if (productId == 0)
                 return new List<ProductAttributeCombination>();
 
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeCombinationsAllCacheKey, productId);
-
             var combinations = _productAttributeCombinationRepository.GetAll(query =>
             {
                 return from c in query
                        orderby c.Id
                     where c.ProductId == productId
                     select c;
-            }, key);
+            }, cache => cache.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductAttributeCombinationsByProductCacheKey, productId));
 
             return combinations;
         }
@@ -367,7 +364,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product attribute combination</returns>
         public virtual ProductAttributeCombination GetProductAttributeCombinationById(int productAttributeCombinationId)
         {
-            return _productAttributeCombinationRepository.GetById(productAttributeCombinationId);
+            return _productAttributeCombinationRepository.GetById(productAttributeCombinationId, cache => default);
         }
 
         /// <summary>

@@ -3,7 +3,6 @@ using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.Catalog
 {
@@ -43,9 +42,9 @@ namespace Nop.Services.Catalog
         /// <returns>Review types</returns>
         public virtual IList<ReviewType> GetAllReviewTypes()
         {
-            return _reviewTypeRepository.GetAll(query => query
-                    .OrderBy(reviewType => reviewType.DisplayOrder).ThenBy(reviewType => reviewType.Id),
-                _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ReviewTypeAllCacheKey));
+            return _reviewTypeRepository.GetAll(
+                query => query.OrderBy(reviewType => reviewType.DisplayOrder).ThenBy(reviewType => reviewType.Id),
+                cache => default);
         }
 
         /// <summary>
@@ -55,7 +54,7 @@ namespace Nop.Services.Catalog
         /// <returns>Review type</returns>
         public virtual ReviewType GetReviewTypeById(int reviewTypeId)
         {
-            return _reviewTypeRepository.GetById(reviewTypeId);
+            return _reviewTypeRepository.GetById(reviewTypeId, cache => default);
         }
 
         /// <summary>
@@ -97,13 +96,13 @@ namespace Nop.Services.Catalog
         public IList<ProductReviewReviewTypeMapping> GetProductReviewReviewTypeMappingsByProductReviewId(
             int productReviewId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductReviewReviewTypeMappingAllCacheKey, productReviewId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductReviewTypeMappingByReviewTypeCacheKey, productReviewId);
 
             var query = from pam in _productReviewReviewTypeMappingRepository.Table
                 orderby pam.Id
                 where pam.ProductReviewId == productReviewId
                 select pam;
-            var productReviewReviewTypeMappings = query.ToCachedList(key);
+            var productReviewReviewTypeMappings = _staticCacheManager.Get(key, query.ToList);
 
             return productReviewReviewTypeMappings;
         }

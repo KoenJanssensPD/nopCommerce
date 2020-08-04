@@ -137,7 +137,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product tags</returns>
         public virtual IList<ProductTag> GetAllProductTags(string tagName = null)
         {
-            var allProductTags = _productTagRepository.GetAll(query => query, _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductTagAllCacheKey));
+            var allProductTags = _productTagRepository.GetAll(getCacheKey: cache => default);
 
             if (!string.IsNullOrEmpty(tagName)) 
                 allProductTags = allProductTags.Where(tag => tag.Name.Contains(tagName)).ToList();
@@ -152,8 +152,6 @@ namespace Nop.Services.Catalog
         /// <returns>Product tags</returns>
         public virtual IList<ProductTag> GetAllProductTagsByProductId(int productId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductTagAllByProductIdCacheKey, productId);
-
             var productTags = _productTagRepository.GetAll(query =>
             {
                 return from pt in query
@@ -161,7 +159,7 @@ namespace Nop.Services.Catalog
                     where ppt.ProductId == productId
                     orderby pt.Id
                     select pt;
-            }, key);
+            }, cache => cache.PrepareKeyForDefaultCache(NopCatalogDefaults.ProductTagsByProductCacheKey, productId));
 
             return productTags;
         }
@@ -173,7 +171,7 @@ namespace Nop.Services.Catalog
         /// <returns>Product tag</returns>
         public virtual ProductTag GetProductTagById(int productTagId)
         {
-            return _productTagRepository.GetById(productTagId);
+            return _productTagRepository.GetById(productTagId, cache => default);
         }
 
         /// <summary>
@@ -328,7 +326,7 @@ namespace Nop.Services.Catalog
             }
 
             //cache
-            _staticCacheManager.RemoveByPrefix(NopCatalogDefaults.ProductTagPrefixCacheKey);
+            _staticCacheManager.RemoveByPrefix(NopEntityCacheDefaults<ProductTag>.Prefix);
         }
 
         #endregion

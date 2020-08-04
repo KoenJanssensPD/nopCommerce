@@ -3,7 +3,6 @@ using System.Linq;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Customers;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.Customers
 {
@@ -55,7 +54,7 @@ namespace Nop.Services.Customers
                 return from ca in query
                     orderby ca.DisplayOrder, ca.Id
                     select ca;
-            }, _staticCacheManager.PrepareKeyForDefaultCache(NopCustomerServicesDefaults.CustomerAttributesAllCacheKey));
+            }, cache => default);
         }
 
         /// <summary>
@@ -65,7 +64,7 @@ namespace Nop.Services.Customers
         /// <returns>Customer attribute</returns>
         public virtual CustomerAttribute GetCustomerAttributeById(int customerAttributeId)
         {
-            return _customerAttributeRepository.GetById(customerAttributeId);
+            return _customerAttributeRepository.GetById(customerAttributeId, cache => default);
         }
 
         /// <summary>
@@ -102,13 +101,13 @@ namespace Nop.Services.Customers
         /// <returns>Customer attribute values</returns>
         public virtual IList<CustomerAttributeValue> GetCustomerAttributeValues(int customerAttributeId)
         {
-            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCustomerServicesDefaults.CustomerAttributeValuesAllCacheKey, customerAttributeId);
+            var key = _staticCacheManager.PrepareKeyForDefaultCache(NopCustomerServicesDefaults.CustomerAttributeValuesByAttributeCacheKey, customerAttributeId);
 
             var query = from cav in _customerAttributeValueRepository.Table
                 orderby cav.DisplayOrder, cav.Id
                 where cav.CustomerAttributeId == customerAttributeId
                 select cav;
-            var customerAttributeValues = query.ToCachedList(key);
+            var customerAttributeValues = _staticCacheManager.Get(key, query.ToList);
 
             return customerAttributeValues;
         }
@@ -120,7 +119,7 @@ namespace Nop.Services.Customers
         /// <returns>Customer attribute value</returns>
         public virtual CustomerAttributeValue GetCustomerAttributeValueById(int customerAttributeValueId)
         {
-            return _customerAttributeValueRepository.GetById(customerAttributeValueId);
+            return _customerAttributeValueRepository.GetById(customerAttributeValueId, cache => default);
         }
 
         /// <summary>

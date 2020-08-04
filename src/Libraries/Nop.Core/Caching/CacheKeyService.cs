@@ -6,12 +6,23 @@ using Nop.Core.Configuration;
 
 namespace Nop.Core.Caching
 {
+    /// <summary>
+    /// Represents the default cache key service implementation
+    /// </summary>
     public abstract partial class CacheKeyService
     {
+        #region Constants
+
+        /// <summary>
+        /// Gets an algorithm used to create the hash value of identifiers need to cache
+        /// </summary>
+        private string HashAlgorithm => "SHA1";
+
+        #endregion
+
         #region Fields
 
         protected readonly NopConfig _nopConfig;
-        private const string HASH_ALGORITHM = "SHA1";
 
         #endregion
 
@@ -27,10 +38,22 @@ namespace Nop.Core.Caching
         #region Utilities
 
         /// <summary>
-        /// Creates the hash sum of identifiers list
+        /// Prepare the cache key prefix
         /// </summary>
-        /// <param name="ids"></param>
-        /// <returns></returns>
+        /// <param name="prefix">Cache key prefix</param>
+        /// <param name="prefixParameters">Parameters to create cache key prefix</param>
+        protected virtual string PrepareKeyPrefix(string prefix, params object[] prefixParameters)
+        {
+            return prefixParameters?.Any() ?? false
+                ? string.Format(prefix, prefixParameters.Select(CreateCacheKeyParameters).ToArray())
+                : prefix;
+        }
+
+        /// <summary>
+        /// Create the hash value of the passed identifiers
+        /// </summary>
+        /// <param name="ids">Collection of identifiers</param>
+        /// <returns>String hash value</returns>
         protected virtual string CreateIdsHash(IEnumerable<int> ids)
         {
             var identifiers = ids.ToList();
@@ -38,7 +61,8 @@ namespace Nop.Core.Caching
             if (!identifiers.Any())
                 return string.Empty;
 
-            return HashHelper.CreateHash(Encoding.UTF8.GetBytes(string.Join(", ", identifiers.OrderBy(id => id))), HASH_ALGORITHM);
+            var identifiersString = string.Join(", ", identifiers.OrderBy(id => id));
+            return HashHelper.CreateHash(Encoding.UTF8.GetBytes(identifiersString), HashAlgorithm);
         }
 
         /// <summary>
@@ -52,22 +76,11 @@ namespace Nop.Core.Caching
             {
                 null => "null",
                 IEnumerable<int> ids => CreateIdsHash(ids),
-                IEnumerable<BaseEntity> entities => CreateIdsHash(entities.Select(e => e.Id)),
+                IEnumerable<BaseEntity> entities => CreateIdsHash(entities.Select(entity => entity.Id)),
                 BaseEntity entity => entity.Id,
                 decimal param => param.ToString(CultureInfo.InvariantCulture),
                 _ => parameter
             };
-        }
-
-        /// <summary>
-        /// Creates a copy of cache key and fills it by set parameters
-        /// </summary>
-        /// <param name="cacheKey">Initial cache key</param>
-        /// <param name="keyObjects">Parameters to create cache key</param>
-        /// <returns>Cache key</returns>
-        protected virtual CacheKey FillCacheKey(CacheKey cacheKey, params object[] keyObjects)
-        {
-            return new CacheKey(cacheKey, CreateCacheKeyParameters, keyObjects);
         }
 
         #endregion
@@ -75,25 +88,25 @@ namespace Nop.Core.Caching
         #region Methods
 
         /// <summary>
-        /// Creates a copy of cache key and fills it by set parameters
+        /// Create a copy of cache key and fills it by passed parameters
         /// </summary>
         /// <param name="cacheKey">Initial cache key</param>
-        /// <param name="keyObjects">Parameters to create cache key</param>
+        /// <param name="cacheKeyParameters">Parameters to create cache key</param>
         /// <returns>Cache key</returns>
-        public virtual CacheKey PrepareKey(CacheKey cacheKey, params object[] keyObjects)
+        public virtual CacheKey PrepareKey(CacheKey cacheKey, params object[] cacheKeyParameters)
         {
-            return FillCacheKey(cacheKey, keyObjects);
+            return cacheKey.Create(CreateCacheKeyParameters, cacheKeyParameters);
         }
 
         /// <summary>
-        /// Creates a copy of cache key using the default cache time and fills it by set parameters
+        /// Create a copy of cache key using the default cache time and fills it by passed parameters
         /// </summary>
         /// <param name="cacheKey">Initial cache key</param>
-        /// <param name="keyObjects">Parameters to create cache key</param>
+        /// <param name="cacheKeyParameters">Parameters to create cache key</param>
         /// <returns>Cache key</returns>
-        public virtual CacheKey PrepareKeyForDefaultCache(CacheKey cacheKey, params object[] keyObjects)
+        public virtual CacheKey PrepareKeyForDefaultCache(CacheKey cacheKey, params object[] cacheKeyParameters)
         {
-            var key = FillCacheKey(cacheKey, keyObjects);
+            var key = cacheKey.Create(CreateCacheKeyParameters, cacheKeyParameters);
 
             key.CacheTime = _nopConfig.DefaultCacheTime;
 
@@ -101,31 +114,18 @@ namespace Nop.Core.Caching
         }
 
         /// <summary>
-        /// Creates a copy of cache key using the short cache time and fills it by set parameters
+        /// Create a copy of cache key using the short cache time and fills it by passed parameters
         /// </summary>
         /// <param name="cacheKey">Initial cache key</param>
-        /// <param name="keyObjects">Parameters to create cache key</param>
+        /// <param name="cacheKeyParameters">Parameters to create cache key</param>
         /// <returns>Cache key</returns>
-        public virtual CacheKey PrepareKeyForShortTermCache(CacheKey cacheKey, params object[] keyObjects)
+        public virtual CacheKey PrepareKeyForShortTermCache(CacheKey cacheKey, params object[] cacheKeyParameters)
         {
-            var key = FillCacheKey(cacheKey, keyObjects);
+            var key = cacheKey.Create(CreateCacheKeyParameters, cacheKeyParameters);
 
             key.CacheTime = _nopConfig.ShortTermCacheTime;
 
             return key;
-        }
-
-        /// <summary>
-        /// Creates the cache key prefix
-        /// </summary>
-        /// <param name="keyFormatter">Key prefix formatter string</param>
-        /// <param name="keyObjects">Parameters to create cache key prefix</param>
-        /// <returns>Cache key prefix</returns>
-        public virtual string PrepareKeyPrefix(string keyFormatter, params object[] keyObjects)
-        {
-            return keyObjects?.Any() ?? false
-                ? string.Format(keyFormatter, keyObjects.Select(CreateCacheKeyParameters).ToArray())
-                : keyFormatter;
         }
 
         #endregion

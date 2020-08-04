@@ -7,7 +7,6 @@ using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.News;
 using Nop.Core.Domain.Stores;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 
 namespace Nop.Services.News
 {
@@ -63,7 +62,7 @@ namespace Nop.Services.News
         /// <returns>News</returns>
         public virtual NewsItem GetNewsById(int newsId)
         {
-            return _newsItemRepository.GetById(newsId);
+            return _newsItemRepository.GetById(newsId, cache => default);
         }
 
         /// <summary>
@@ -219,7 +218,7 @@ namespace Nop.Services.News
         /// <returns>News comment</returns>
         public virtual NewsComment GetNewsCommentById(int newsCommentId)
         {
-            return _newsCommentRepository.GetById(newsCommentId);
+            return _newsCommentRepository.GetById(newsCommentId, cache => default);
         }
 
         /// <summary>
@@ -251,7 +250,7 @@ namespace Nop.Services.News
 
             var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopNewsDefaults.NewsCommentsNumberCacheKey, newsItem, storeId, isApproved);
 
-            return query.ToCachedCount(cacheKey);
+            return _staticCacheManager.Get(cacheKey, query.Count);
         }
 
         /// <summary>

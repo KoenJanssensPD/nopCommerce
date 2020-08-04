@@ -12,7 +12,6 @@ using Nop.Core.Configuration;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Security;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Configuration;
 using Nop.Services.Logging;
 using Nop.Services.Plugins;
@@ -157,7 +156,7 @@ namespace Nop.Services.Localization
         /// <returns>Locale string resource</returns>
         public virtual LocaleStringResource GetLocaleStringResourceById(int localeStringResourceId)
         {
-            return _lsrRepository.GetById(localeStringResourceId);
+            return _lsrRepository.GetById(localeStringResourceId, cache => default);
         }
 
         /// <summary>
@@ -240,16 +239,17 @@ namespace Nop.Services.Localization
                 });
 
                 //remove separated resource 
-                _staticCacheManager.Remove(_staticCacheManager.PrepareKeyForDefaultCache(NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey, languageId));
-                _staticCacheManager.Remove(_staticCacheManager.PrepareKeyForDefaultCache(NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey, languageId));
+                _staticCacheManager.Remove(NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey, languageId);
+                _staticCacheManager.Remove(NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey, languageId);
 
                 return rez;
             }
 
             //performance optimization of the site startup
-            key = _staticCacheManager.PrepareKeyForDefaultCache(
-                    loadPublicLocales.Value ? NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey : NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey,
-                    languageId);
+            key = _staticCacheManager.PrepareKeyForDefaultCache(loadPublicLocales.Value
+                ? NopLocalizationDefaults.LocaleStringResourcesAllPublicCacheKey
+                : NopLocalizationDefaults.LocaleStringResourcesAllAdminCacheKey,
+                languageId);
 
             return _staticCacheManager.Get(key, () =>
             {
@@ -305,7 +305,7 @@ namespace Nop.Services.Localization
             else
             {
                 //gradual loading
-                var key = _staticCacheManager.PrepareKeyForDefaultCache(NopLocalizationDefaults.LocaleStringResourcesByResourceNameCacheKey
+                var key = _staticCacheManager.PrepareKeyForDefaultCache(NopLocalizationDefaults.LocaleStringResourcesByNameCacheKey
                     , languageId, resourceKey);
 
                 var query = from l in _lsrRepository.Table
@@ -313,7 +313,7 @@ namespace Nop.Services.Localization
                           && l.LanguageId == languageId
                     select l.ResourceValue;
 
-                var lsr = query.ToCachedFirstOrDefault(key);
+                var lsr = _staticCacheManager.Get(key, query.FirstOrDefault);
 
                 if (lsr != null)
                     result = lsr;
@@ -416,7 +416,7 @@ namespace Nop.Services.Localization
             _lsrRepository.Insert(lrsToInsertList.Values.ToList(), false);
 
             //clear cache
-            _staticCacheManager.RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesPrefixCacheKey);
+            _staticCacheManager.RemoveByPrefix(NopEntityCacheDefaults<LocaleStringResource>.Prefix);
         }
 
         /// <summary>
@@ -680,7 +680,7 @@ namespace Nop.Services.Localization
             _lsrRepository.Insert(locales, false);
 
             //clear cache
-            _staticCacheManager.RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesPrefixCacheKey);
+            _staticCacheManager.RemoveByPrefix(NopEntityCacheDefaults<LocaleStringResource>.Prefix);
         }
 
         /// <summary>
@@ -708,7 +708,7 @@ namespace Nop.Services.Localization
                 resourceNames.Contains(locale.ResourceName, StringComparer.InvariantCultureIgnoreCase));
 
             //clear cache
-            _staticCacheManager.RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesPrefixCacheKey);
+            _staticCacheManager.RemoveByPrefix(NopEntityCacheDefaults<LocaleStringResource>.Prefix);
         }
 
         /// <summary>
@@ -723,7 +723,7 @@ namespace Nop.Services.Localization
                 locale.ResourceName.StartsWith(resourceNamePrefix, StringComparison.InvariantCultureIgnoreCase));
 
             //clear cache
-            _staticCacheManager.RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesPrefixCacheKey);
+            _staticCacheManager.RemoveByPrefix(NopEntityCacheDefaults<LocaleStringResource>.Prefix);
         }
 
         /// <summary>

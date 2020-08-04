@@ -4,7 +4,6 @@ using Nop.Core.Caching;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Directory;
 using Nop.Data;
-using Nop.Services.Caching.Extensions;
 using Nop.Services.Localization;
 
 namespace Nop.Services.Directory
@@ -52,7 +51,7 @@ namespace Nop.Services.Directory
         /// <returns>State/province</returns>
         public virtual StateProvince GetStateProvinceById(int stateProvinceId)
         {
-            return _stateProvinceRepository.GetById(stateProvinceId);
+            return _stateProvinceRepository.GetById(stateProvinceId, cache => default);
         }
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace Nop.Services.Directory
             if (countryId.HasValue)
                 query = query.Where(state => state.CountryId == countryId);
 
-            return query.ToCachedFirstOrDefault(key);
+            return _staticCacheManager.Get(key, query.FirstOrDefault);
         }
 
         /// <summary>
@@ -133,7 +132,7 @@ namespace Nop.Services.Directory
                         where showHidden || sp.Published
                         select sp;
 
-            var stateProvinces = query.ToCachedList(_staticCacheManager.PrepareKeyForDefaultCache(NopDirectoryDefaults.StateProvincesAllCacheKey, showHidden));
+            var stateProvinces = _staticCacheManager.Get(_staticCacheManager.PrepareKeyForDefaultCache(NopDirectoryDefaults.StateProvincesAllCacheKey, showHidden), query.ToList);
 
             return stateProvinces;
         }

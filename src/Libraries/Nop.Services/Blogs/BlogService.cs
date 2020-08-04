@@ -62,7 +62,7 @@ namespace Nop.Services.Blogs
         /// <returns>Blog post</returns>
         public virtual BlogPost GetBlogPostById(int blogPostId)
         {
-            return _blogPostRepository.GetById(blogPostId);
+            return _blogPostRepository.GetById(blogPostId, cache => default);
         }
 
         /// <summary>
@@ -158,7 +158,7 @@ namespace Nop.Services.Blogs
         /// <returns>Blog post tags</returns>
         public virtual IList<BlogPostTag> GetAllBlogPostTags(int storeId, int languageId, bool showHidden = false)
         {
-            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopBlogsDefaults.BlogTagsModelCacheKey, languageId, storeId, showHidden);
+            var cacheKey = _staticCacheManager.PrepareKeyForDefaultCache(NopBlogsDefaults.BlogTagsCacheKey, languageId, storeId, showHidden);
 
             var blogPostTags = _staticCacheManager.Get(cacheKey, () =>
             {
@@ -322,7 +322,7 @@ namespace Nop.Services.Blogs
         /// <returns>Blog comment</returns>
         public virtual BlogComment GetBlogCommentById(int blogCommentId)
         {
-            return _blogCommentRepository.GetById(blogCommentId);
+            return _blogCommentRepository.GetById(blogCommentId, cache => default);
         }
 
         /// <summary>
